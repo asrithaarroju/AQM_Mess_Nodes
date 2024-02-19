@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outdoor Air Quality Data Visualization</title>
+    <!-- Add Plotly.js library -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Add styling -->
+    <style>
+      body {
+        font-family: "Roboto", sans-serif;
+        position: relative; /* Make the body container for absolute positioning */
+      }
+      .plot-container {
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        background-color: rgb(255, 255, 255);
+        margin: 20px auto; /* Center the plot horizontally */
+        padding-right: 100px; /* Add padding on the right side */
+        position: relative; /* Make the plot container relative for positioning */
+      }
+      h1 {
+        color: #4285f4;
+        text-align: center;
+      }
+      /* Responsive styles */
+      @media only screen and (max-width: 600px) {
+        .plot-container {
+          margin: 10px auto; /* Center the plot horizontally */
+          padding-right: 50px; /* Add padding on the right side */
+        }
+      }
+      @media only screen and (min-width: 601px) and (max-width: 900px) {
+        .plot-container {
+          margin: 15px auto; /* Center the plot horizontally */
+          padding-right: 75px; /* Add padding on the right side */
+        }
+      }
+      .lastTimestamp {
+        position: absolute; /* Position the last timestamp absolutely */
+        font-size: 14px;
+        bottom: 10px;
+        left: 50%; /* Center horizontally */
+        transform: translateX(-50%);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Plotly Plot Containers -->
+    <div id="plot1" class="plot-container"></div>
+    <div id="plot2" class="plot-container"></div>
+    <div id="plot3" class="plot-container"></div>
+    <div id="plot4" class="plot-container"></div>
+    <!-- Script for fetching and plotting data -->
+    <script>
+      function fetchDataAndPlot(apiKey, channelId, plotId, title) {
+        const url = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=10000000`;
+
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            const feeds = data.feeds;
+
+            const timestamps = feeds.map((feed) => {
+              const date = new Date(feed.created_at);
+              return `${pad2(date.getDate())}-${pad2(
+                date.getMonth() + 1
+              )}-${date.getFullYear()} ${pad2(date.getHours())}:${pad2(
+                date.getMinutes()
+              )}`;
+            });
+            const pm25 = feeds.map((feed) => parseFloat(feed.field2));
+            const pm10 = feeds.map((feed) => parseFloat(feed.field1));
+            const temperature = feeds.map((feed) => parseFloat(feed.field3));
+            const humidity = feeds.map((feed) => parseFloat(feed.field4));
+
+            function pad2(number) {
+              return (number < 10 ? "0" : "") + number;
+            }
+
+            const trace_pm25 = {
+              x: timestamps,
+              y: pm25,
+              name: "PM2.5(µg/m3)",
+              type: "line",
+            };
+            const trace_pm10 = {
+              x: timestamps,
+              y: pm10,
+              name: "PM10(µg/m3)",
+              type: "line",
+            };
+            const trace_temperature = {
+              x: timestamps,
+              y: temperature,
+              name: "Temperature(°C)",
+              type: "line",
+            };
+            const trace_humidity = {
+              x: timestamps,
+              y: humidity,
+              name: "Humidity(%)",
+              type: "line",
+            };
+
+            const layout = {
+              title: title,
+              xaxis: {
+                title: "Timestamp",
+                type: "category",
+                rangeselector: {
+                  buttons: [
+                    {
+                      count: 1,
+                      label: "1d",
+                      step: "day",
+                      stepmode: "backward",
+                    },
+                    {
+                      count: 7,
+                      label: "1w",
+                      step: "day",
+                      stepmode: "backward",
+                    },
+                    {
+                      count: 1,
+                      label: "1m",
+                      step: "month",
+                      stepmode: "backward",
+                    },
+                    {
+                      count: 6,
+                      label: "6m",
+                      step: "month",
+                      stepmode: "backward",
+                    },
+                    { step: "all" },
+                  ],
+                },
+                rangeslider: {
+                  visible: true,
+                  bgcolor: "rgba(0,0,0,0)",
+                  bordercolor: "rgba(0,0,0,0)",
+                },
+              },
+              yaxis: { title: "Values" },
+              showlegend: true,
+              height: 650,
+              width: 1150,
+            };
+
+            Plotly.newPlot(
+              plotId,
+              [trace_pm25, trace_pm10, trace_temperature, trace_humidity],
+              layout
+            );
+
+            const lastTimestamp = timestamps[timestamps.length - 1];
+            const lastTimestampElement = document.createElement("div");
+            lastTimestampElement.classList.add("lastTimestamp");
+            lastTimestampElement.innerText = `Last Data_Entry_at: ${lastTimestamp}`;
+            document.getElementById(plotId).appendChild(lastTimestampElement);
+          })
+          .catch((error) => console.error("Error fetching data:", error));
+      }
+
+      fetchDataAndPlot(
+        "DO0NQO7N7M82AZ8T",
+        "2248876",
+        "plot1",
+        "Air Quality Data - Node 1"
+      );
+      // fetchDataAndPlot(
+      //   "BEQODBH08L6J6TBME",
+      //   "2291468",
+      //   "plot1",
+      //   "Air Quality Data Raw - Node 1"
+      // );
+      fetchDataAndPlot(
+        "JQK1ZCZRECCEXUYS",
+        "2248878",
+        "plot2",
+        "Air Quality Data - Node 2"
+      );
+      // fetchDataAndPlot(
+      //   "XRLCM3ELMRAIKT5O",
+      //   "2291470",
+      //   "plot2",
+      //   "Air Quality Data  Raw- Node 2"
+      // );
+      fetchDataAndPlot(
+        "ZBVS6X0LZ725J3FP",
+        "2248879",
+        "plot3",
+        "Air Quality Data - Node 3"
+      );
+      // fetchDataAndPlot(
+      //   "YFJEV8XR9DRX758F",
+      //   "2291471",
+      //   "plot3",
+      //   "Air Quality Data - Node 3"
+
+      // );
+      fetchDataAndPlot(
+        "4LCNXDZ2Z6QF0I7P",
+        "2248880",
+        "plot4",
+        "Air Quality Data - Node 4"
+      );
+      // fetchDataAndPlot(
+      //   "9RI66ZS87EZ77UFF",
+      //   "2291473",
+      //   "plot4",
+      //   "Air Quality Data - Node 4"
+      // );
+    </script>
+  </body>
+</html>
